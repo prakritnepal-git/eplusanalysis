@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eagle Analysis: ePlus inc. (PLUS)</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js & Plugins -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        /* Base typography & UX */
+        body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background-color: #F8FAFC; color: #0F172A; }
+        
+        /* Main Page Routing */
+        .page-section { display: none; animation: fadeIn 0.2s ease-in-out; }
+        .page-section.active { display: block; }
+
+        /* Sub-Tab Routing */
+        .sub-tab-content { display: none; animation: fadeIn 0.2s ease-in-out; }
+        .sub-tab-content.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Chart Containers */
+        .chart-container {
+            position: relative; width: 100%; max-width: 100%; margin: 0 auto;
+            height: 400px; background: white; border-radius: 0.5rem; border: 1px solid #E2E8F0; padding: 1rem;
+        }
+
+        #map { height: 500px; width: 100%; border-radius: 0.5rem; border: 1px solid #E2E8F0; z-index: 10; }
+
+        /* Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #F1F5F9; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+
+        /* Navigation */
+        .nav-item.active { background-color: #0F172A; border-left: 4px solid #0EA5E9; color: #F8FAFC; font-weight: 600; }
+        .nav-item { border-left: 4px solid transparent; }
+
+        .sub-tab-btn.active { border-bottom: 2px solid #0EA5E9; color: #0EA5E9; font-weight: 600; background-color: #F0F9FF;}
+        
+        /* Tables */
+        .data-table th { background-color: #F1F5F9; text-transform: uppercase; font-size: 0.75rem; color: #475569; font-weight: 600; text-align: left; padding: 0.75rem 1rem;}
+        .data-table td { border-bottom: 1px solid #E2E8F0; padding: 0.75rem 1rem; font-size: 0.875rem; }
+        .data-table tr:hover { background-color: #F8FAFC; }
+
+        /* Vertical Timeline CSS */
+        .v-timeline { position: relative; padding-left: 2rem; margin-top: 1rem; margin-bottom: 1rem; border-left: 4px solid #E2E8F0; }
+        .v-timeline-node { position: absolute; left: -0.6rem; top: 1.5rem; width: 1rem; height: 1rem; border-radius: 50%; background-color: #0EA5E9; border: 3px solid white; box-shadow: 0 0 0 1px #0EA5E9; }
+        .v-timeline-card { background: white; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: border-color 0.2s; }
+        .v-timeline-card:hover { border-color: #0EA5E9; }
+        
+        /* Initials Avatar */
+        .avatar-circle { width: 3.5rem; height: 3.5rem; border-radius: 50%; background-color: #0F172A; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.25rem; flex-shrink: 0; border: 2px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);}
+    </style>
+</head>
+<body class="flex flex-col md:flex-row min-h-screen overflow-hidden">
+
+    <!-- Sidebar Navigation -->
+    <nav class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col fixed md:relative z-50 h-auto md:h-screen shrink-0 shadow-2xl">
+        <div class="p-6 border-b border-slate-800 flex justify-between items-center md:block">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-white">Eagle Analysis</h1>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1 font-mono">Target: ePlus (PLUS)</p>
+            </div>
+            <button id="mobile-menu-btn" class="md:hidden text-white focus:outline-none"><span class="text-2xl">&#9776;</span></button>
+        </div>
+        
+        <ul id="nav-menu" class="hidden md:flex flex-col py-4 overflow-y-auto w-full font-medium text-sm">
+            <li><button class="nav-item active w-full text-left py-3 px-6 hover:bg-slate-800 transition-colors" data-target="sec-overview">Strategic Overview</button></li>
+            <li><button class="nav-item w-full text-left py-3 px-6 hover:bg-slate-800 transition-colors" data-target="sec-financials">5-Yr Performance & HC</button></li>
+            <li><button class="nav-item w-full text-left py-3 px-6 hover:bg-slate-800 transition-colors" data-target="sec-market">Market Performance</button></li>
+            <li><button class="nav-item w-full text-left py-3 px-6 hover:bg-slate-800 transition-colors" data-target="sec-gtm">GTM & Proprietary Tech</button></li>
+            <li><button class="nav-item w-full text-left py-3 px-6 hover:bg-slate-800 transition-colors" data-target="sec-leadership">Leadership & Board</button></li>
+            <li><button class="nav-item w-full text-left py-3 px-6 hover:bg-slate-800 transition-colors" data-target="sec-mna">Inorganic Growth (M&A)</button></li>
+            <li><button class="nav-item w-full text-left py-3 px-6 hover:bg-slate-800 transition-colors" data-target="sec-locations">Geospatial Footprint</button></li>
+            <li><button class="nav-item w-full text-left py-3 px-6 hover:bg-slate-800 transition-colors" data-target="sec-risks">Risk Matrix & Ownership</button></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 w-full bg-slate-50 h-screen overflow-y-auto pt-24 md:pt-0">
+        
+        <!-- MODULE 1: Strategic Overview -->
+        <section id="sec-overview" class="page-section active p-6 md:p-10 lg:p-12 max-w-7xl mx-auto">
+            <header class="mb-8 border-b border-slate-200 pb-4">
+                <h2 class="text-3xl font-bold text-slate-900">Strategic Overview & Focus Areas</h2>
+                <p class="text-slate-500 mt-2">Core drivers shifting ePlus from transactional reseller to embedded IT architect.</p>
+            </header>
+            
+            <div class="mb-10 text-slate-700 leading-relaxed bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                <p class="mb-4">The company maintains a strict focus on providing trusted guidance, innovative and flexible technology solutions, and a full suite of differentiated services. Over the past five years, the fundamental shift driving profitability for the firm has been the transition to recurring "As-a-Service" consumption models.</p>
+                <p>Because subscription, SaaS, and consumption models are often recognized on a net basis, they consistently drive Gross Billings up at a disproportionate rate compared to Net Sales, while yielding significantly higher profit margins and deepening long-term customer relationships.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
+                <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-sky-500">
+                    <h4 class="font-bold text-slate-900 mb-2">Divestiture of Financing</h4>
+                    <p class="text-sm text-slate-600">On June 30, 2025, the company executed a structural shift by selling its domestic financing business to PEAC Solutions. The $180M initial cash proceeds are being reinvested purely into high-growth tech and services operations.</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-sky-500">
+                    <h4 class="font-bold text-slate-900 mb-2">Strategic M&A</h4>
+                    <p class="text-sm text-slate-600">Since 1997, nearly 30 acquisitions have been integrated to broaden product offerings, deepen engineering capabilities, and expand regional presence (e.g., Bailiwick, NSG, PEAK).</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-sky-500">
+                    <h4 class="font-bold text-slate-900 mb-2">Human Capital Moat</h4>
+                    <p class="text-sm text-slate-600">Personnel are viewed as the primary differentiator. The firm actively recruits highly skilled talent holding thousands of technical certs across Cisco, AWS, Microsoft, and NVIDIA.</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-sky-500">
+                    <h4 class="font-bold text-slate-900 mb-2">Supply Chain Navigation</h4>
+                    <p class="text-sm text-slate-600">Mitigating recurring volatility. The company previously wrestled with general semiconductor shortages; currently navigating an industry-wide shortage of memory/storage chips driven by AI demand causing rapid price hikes and delays.</p>
+                </div>
+            </div>
+
+            <h3 class="text-2xl font-bold text-slate-900 mb-6">High-Growth Technology Focus Areas</h3>
+            <div class="space-y-4">
+                <div class="bg-slate-900 p-6 rounded-lg text-white">
+                    <h4 class="text-xl font-bold mb-2 flex items-center"><span class="text-sky-400 mr-3">■</span> Artificial Intelligence (AI)</h4>
+                    <p class="text-slate-300 text-sm mb-3">AI is a transformative force across industries. Demand for AI-ready products to enhance decision-making and automate tasks was a major catalyst for core product sales (Networking/Cloud) in FY26.</p>
+                    <ul class="text-sm space-y-1 text-slate-400 ml-6 list-disc">
+                        <li>Launched <strong>"AI Ignite"</strong> program to help customers assess, enable, implement, and scale AI solutions.</li>
+                        <li>Developed <strong>Secure GenAI Accelerator</strong> (hosted PoC environment for safe testing) and an <strong>AI Experience Center</strong>.</li>
+                        <li>Distinguishes itself as the only U.S. partner with both <strong>NVIDIA DGX-Ready SuperPod</strong> and <strong>DGX-Ready MSP</strong> specializations.</li>
+                    </ul>
+                </div>
+                <div class="bg-white border border-slate-200 p-6 rounded-lg shadow-sm">
+                    <h4 class="text-xl font-bold mb-2 flex items-center text-slate-900"><span class="text-teal-500 mr-3">■</span> Cybersecurity</h4>
+                    <p class="text-slate-600 text-sm mb-3">Security grew every year from $476.3M (FY22) to $841.5M (FY26). Rising sophistication of cyber attacks and hybrid work environments make this an enduring necessity.</p>
+                    <ul class="text-sm space-y-1 text-slate-600 ml-6 list-disc">
+                        <li>Leads with the <strong>"Compromise Nothing"</strong> program, facilitating holistic business resilience.</li>
+                        <li>Provides comprehensive Managed Security Services, including Security Operations Center <strong>(SOC)</strong> and Managed Detection and Response <strong>(MDR)</strong>.</li>
+                    </ul>
+                </div>
+                <div class="bg-white border border-slate-200 p-6 rounded-lg shadow-sm">
+                    <h4 class="text-xl font-bold mb-2 flex items-center text-slate-900"><span class="text-indigo-500 mr-3">■</span> Cloud and Data Modernization</h4>
+                    <p class="text-slate-600 text-sm mb-3">A core foundation of the strategy is helping customers implement a multi-cloud strategy and guiding them through their "Journey to Modernization".</p>
+                    <ul class="text-sm space-y-1 text-slate-600 ml-6 list-disc">
+                        <li>Accelerating cloud migrations and optimizing cloud costs.</li>
+                        <li>Securing workloads across private, public, and hybrid environments.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 2: Financial & Headcount -->
+        <section id="sec-financials" class="page-section p-6 md:p-10 lg:p-12 max-w-7xl mx-auto">
+            <header class="mb-8 border-b border-slate-200 pb-4">
+                <h2 class="text-3xl font-bold text-slate-900">5-Year Historical Performance & Human Capital</h2>
+            </header>
+
+            <div class="flex border-b border-slate-200 mb-6 overflow-x-auto">
+                <button class="sub-tab-btn active px-4 py-3 text-sm focus:outline-none whitespace-nowrap" data-parent="sec-financials" data-target="tab-financials">Financials (P&L)</button>
+                <button class="sub-tab-btn px-4 py-3 text-sm text-slate-500 hover:text-slate-800 focus:outline-none whitespace-nowrap" data-parent="sec-financials" data-target="tab-prod-serv">Product & Services Mix</button>
+                <button class="sub-tab-btn px-4 py-3 text-sm text-slate-500 hover:text-slate-800 focus:outline-none whitespace-nowrap" data-parent="sec-financials" data-target="tab-markets">Customer End Markets</button>
+                <button class="sub-tab-btn px-4 py-3 text-sm text-slate-500 hover:text-slate-800 focus:outline-none whitespace-nowrap" data-parent="sec-financials" data-target="tab-headcount">Human Capital Breakdown</button>
+            </div>
+
+            <!-- Sub Tab 0: Financials (P&L) -->
+            <div id="tab-financials" class="sub-tab-content active">
+                <div class="bg-sky-50 border border-sky-100 p-5 rounded-lg mb-8 text-sm text-slate-800">
+                    <strong>Important Note:</strong> In June 2025 (Fiscal 2026), the company completed the sale of its domestic financing business. Consequently, the results for FY2024, FY2025, and FY2026 have been retrospectively restated to reflect only "Continuing Operations" (the core technology business segments), while FY2022 and FY2023 reflect the originally reported fully consolidated totals.
+                </div>
+                
+                <div class="space-y-8">
+                    <div class="overflow-x-auto bg-white border border-slate-200 rounded-lg shadow-sm">
+                        <div class="bg-slate-50 border-b border-slate-200 p-4">
+                            <h3 class="font-bold text-slate-800 text-sm uppercase tracking-wider">5-Year Profit & Loss (P&L) Summary</h3>
+                        </div>
+                        <table class="w-full data-table">
+                            <thead>
+                                <tr>
+                                    <th>Category ($ in Millions)</th>
+                                    <th class="text-right">FY2022 (Consolidated)</th>
+                                    <th class="text-right">FY2023 (Consolidated)</th>
+                                    <th class="text-right">FY2024 (Continuing Ops)</th>
+                                    <th class="text-right">FY2025 (Continuing Ops)</th>
+                                    <th class="text-right">FY2026 (Continuing Ops)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td class="font-medium text-slate-800">Net Sales</td><td class="text-right">$1,821.0</td><td class="text-right">$2,067.7</td><td class="text-right">$2,178.2</td><td class="text-right">$2,000.2</td><td class="text-right">$2,442.5</td></tr>
+                                <tr><td class="font-medium text-slate-800">Cost of Sales</td><td class="text-right">$1,360.0</td><td class="text-right">$1,550.2</td><td class="text-right">$1,666.5</td><td class="text-right">$1,488.0</td><td class="text-right">$1,826.5</td></tr>
+                                <tr><td class="font-bold text-slate-900 border-t border-slate-300">Gross Profit</td><td class="text-right font-bold text-slate-900 border-t border-slate-300">$461.0</td><td class="text-right font-bold text-slate-900 border-t border-slate-300">$517.5</td><td class="text-right font-bold text-slate-900 border-t border-slate-300">$511.7</td><td class="text-right font-bold text-slate-900 border-t border-slate-300">$512.1</td><td class="text-right font-bold text-slate-900 border-t border-slate-300">$616.1</td></tr>
+                                <tr><td class="text-slate-600 italic">(Gross Margin %)</td><td class="text-right text-slate-600 italic">25.3%</td><td class="text-right text-slate-600 italic">25.0%</td><td class="text-right text-slate-600 italic">23.5%</td><td class="text-right text-slate-600 italic">25.6%</td><td class="text-right text-slate-600 italic">25.2%</td></tr>
+                                <tr><td class="font-medium text-slate-800 border-t border-slate-200">Operating Expenses</td><td class="text-right border-t border-slate-200">$313.7</td><td class="text-right border-t border-slate-200">$351.4</td><td class="text-right border-t border-slate-200">$377.9</td><td class="text-right border-t border-slate-200">$412.4</td><td class="text-right border-t border-slate-200">$449.9</td></tr>
+                                <tr><td class="font-bold text-slate-900 border-t border-slate-300">Operating Income</td><td class="text-right font-bold text-slate-900 border-t border-slate-300">$147.3</td><td class="text-right font-bold text-slate-900 border-t border-slate-300">$166.2</td><td class="text-right font-bold text-slate-900 border-t border-slate-300">$133.8</td><td class="text-right font-bold text-slate-900 border-t border-slate-300">$99.7</td><td class="text-right font-bold text-slate-900 border-t border-slate-300">$166.1</td></tr>
+                                <tr class="bg-slate-50"><td class="font-bold text-slate-900 border-t-2 border-slate-300">Net Earnings</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">$105.6</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">$119.4</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">$97.3</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">$76.4</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">$124.1</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="p-3 text-xs text-slate-500 bg-slate-50 border-t border-slate-200">*Sources: FY22-FY23 data, FY24-FY26 data.</div>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                        <h3 class="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-3">Drivers of Changes by Major Category</h3>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-lg mb-2 flex items-center"><span class="w-6 h-6 rounded bg-sky-100 text-sky-600 flex items-center justify-center text-sm mr-2">1</span> Net Sales</h4>
+                                <p class="text-sm text-slate-600 mb-2">Net sales experienced strong growth early in the 5-year period, dipped in FY2025, and surged to record highs by FY2026.</p>
+                                <ul class="text-sm text-slate-600 list-disc pl-5 space-y-2">
+                                    <li><strong>FY22 & FY23 Growth:</strong> Sales grew rapidly (13.5% in FY23) driven by broad-based customer demand for networking and security solutions to enable remote and hybrid workplace transformations.</li>
+                                    <li><strong>FY24 & FY25 Shift in Revenue Recognition:</strong> While gross billings continued to rise across this period, net sales dropped to $2.0 billion in FY2025. This divergence was driven by a major industry shift toward Software-as-a-Service (SaaS), cloud computing, and subscription-based software. Because the company acts as an agent rather than a principal for these services, the revenues are recorded on a net basis (recognizing only the margin rather than the full transaction value), which artificially suppresses top-line net sales figures while improving gross margin percentages.</li>
+                                    <li><strong>FY26 Resurgence:</strong> Net sales rebounded massively, increasing by $442.4 million year-over-year. This was fueled by spending from large enterprise customers investing heavily in networking, cloud, and security solutions, alongside a stabilization in the proportion of sales recognized on a net basis.</li>
+                                </ul>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-lg mb-2 flex items-center"><span class="w-6 h-6 rounded bg-sky-100 text-sky-600 flex items-center justify-center text-sm mr-2">2</span> Gross Profit and Gross Margin</h4>
+                                <p class="text-sm text-slate-600 mb-2">Gross profit climbed steadily, reaching $616.1 million by FY2026.</p>
+                                <ul class="text-sm text-slate-600 list-disc pl-5 space-y-2">
+                                    <li><strong>Product Margin Expansion:</strong> The shift toward "as-a-service" and subscription models mentioned above was the primary catalyst for gross margin percentage expansion. In FY2025, product gross margins expanded by 190 basis points specifically because of the higher proportion of third-party maintenance and SaaS subscriptions recognized on a net basis.</li>
+                                    <li><strong>Services Margin Compression:</strong> Conversely, while the services segment grew rapidly in volume, its gross margins faced pressure in the latter years. Following the acquisition of Bailiwick in August 2024, professional services margins decreased because Bailiwick utilizes a much higher proportion of third-party contractors for service delivery, which yields lower margins than the firm's organic professional services.</li>
+                                </ul>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-lg mb-2 flex items-center"><span class="w-6 h-6 rounded bg-sky-100 text-sky-600 flex items-center justify-center text-sm mr-2">3</span> Operating Expenses (SG&A, D&A)</h4>
+                                <p class="text-sm text-slate-600 mb-2">Operating expenses grew every single year, escalating from $313.7 million in FY2022 to $449.9 million in FY2026.</p>
+                                <ul class="text-sm text-slate-600 list-disc pl-5 space-y-2">
+                                    <li><strong>Investments in Human Capital:</strong> The most significant driver of rising costs was headcount expansion to support growth. The firm aggressively hired engineering and customer-facing talent, increasing its employee base from 1,577 in FY2022 to over 2,150 by FY2025. The acquisition of Bailiwick alone added 441 employees in a single year.</li>
+                                    <li><strong>Variable Compensation and IT Costs:</strong> Increases in gross profit directly triggered higher variable compensation and commission payouts for the sales force. Additionally, the firm incurred higher software, subscription, and IT maintenance fees to support its growing internal infrastructure, as well as a return to pre-pandemic levels of travel and entertainment expenses.</li>
+                                    <li><strong>Acquisition Amortization:</strong> Depreciation and amortization steadily increased (reaching $26.5 million in FY2026) due to the amortization of intangible assets acquired from recent strategic purchases, including Network Solutions Group, PEAK Resources, and Bailiwick.</li>
+                                </ul>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-bold text-slate-800 text-lg mb-2 flex items-center"><span class="w-6 h-6 rounded bg-sky-100 text-sky-600 flex items-center justify-center text-sm mr-2">4</span> Operating Income and Net Earnings</h4>
+                                <ul class="text-sm text-slate-600 list-disc pl-5 space-y-2 mt-2">
+                                    <li><strong>The FY24 & FY25 Compression:</strong> Operating income and net earnings peaked in FY2023 but contracted over the following two years. This profit squeeze occurred because gross profit remained relatively flat during the transition to net-basis revenue recognition, while operating expenses (driven by inflation, wage increases, and the integration of new acquisitions) continued to climb sharply.</li>
+                                    <li><strong>The FY26 Recovery:</strong> Operating income surged by 66.7% in FY2026 to reach $166.1 million. This recovery was driven by a massive $104 million increase in gross profit, which far outpaced the $36.7 million increase in operating expenses for the year. Furthermore, net earnings benefited from increased interest income resulting from higher cash balances held by the firm.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub Tab 1: Product & Service -->
+            <div id="tab-prod-serv" class="sub-tab-content">
+                <div class="bg-sky-50 border border-sky-100 p-5 rounded-lg mb-8 text-sm text-slate-800">
+                    <strong>FY2026 Commentary:</strong> Robust expansion. Total Gross billings increased to $3.84 billion. Professional services sales grew 19.4%, primarily fueled by revenues gained from the Bailiwick acquisition. Managed services expanded 10.6% YoY driven by cloud services and enhanced maintenance support.
+                </div>
+                
+                <div class="space-y-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-8">
+                        <h3 class="font-bold text-slate-800 mb-4">Product and Service Categories (Gross Billings $M)</h3>
+                        <div class="chart-container"><canvas id="prodChart"></canvas></div>
+                    </div>
+                    
+                    <div class="overflow-x-auto bg-white border border-slate-200 rounded-lg shadow-sm">
+                        <table class="w-full data-table">
+                            <thead><tr><th>Gross Billings ($M)</th><th class="text-right">FY22</th><th class="text-right">FY23</th><th class="text-right">FY24</th><th class="text-right">FY25</th><th class="text-right">FY26</th></tr></thead>
+                            <tbody>
+                                <tr><td class="font-medium text-slate-800">Networking</td><td class="text-right">709.7</td><td class="text-right">927.3</td><td class="text-right">1,172.3</td><td class="text-right">929.7</td><td class="text-right">1,152.1</td></tr>
+                                <tr><td class="font-medium text-slate-800">Cloud / Data Center</td><td class="text-right">828.0</td><td class="text-right">892.3</td><td class="text-right">824.1</td><td class="text-right">865.9</td><td class="text-right">1,016.7</td></tr>
+                                <tr><td class="font-medium text-slate-800">Security</td><td class="text-right">476.3</td><td class="text-right">639.4</td><td class="text-right">625.4</td><td class="text-right">683.6</td><td class="text-right">841.5</td></tr>
+                                <tr><td class="font-medium text-slate-800">Collaboration</td><td class="text-right">131.9</td><td class="text-right">127.0</td><td class="text-right">121.0</td><td class="text-right">120.4</td><td class="text-right">109.5</td></tr>
+                                <tr><td class="font-medium text-slate-800">Other</td><td class="text-right">240.6</td><td class="text-right">282.7</td><td class="text-right">262.4</td><td class="text-right">245.0</td><td class="text-right">252.1</td></tr>
+                                <tr><td class="font-medium text-slate-800 border-t border-slate-300 bg-slate-50">Total Product Gross Billings</td><td class="text-right border-t border-slate-300 bg-slate-50">2,386.6</td><td class="text-right border-t border-slate-300 bg-slate-50">2,868.8</td><td class="text-right border-t border-slate-300 bg-slate-50">3,005.2</td><td class="text-right border-t border-slate-300 bg-slate-50">2,844.5</td><td class="text-right border-t border-slate-300 bg-slate-50">3,371.9</td></tr>
+                                <tr><td class="font-medium text-slate-800">Total Service Gross Billings</td><td class="text-right">239.2</td><td class="text-right">277.1</td><td class="text-right">324.6</td><td class="text-right">435.9</td><td class="text-right">466.6</td></tr>
+                                <tr class="bg-slate-100"><td class="font-bold text-slate-900 border-t-2 border-slate-300">TOTAL GROSS BILLINGS</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">2,625.8</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">3,145.9</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">3,329.8</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">3,280.4</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">3,838.5</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub Tab 2: End Markets -->
+            <div id="tab-markets" class="sub-tab-content">
+                <div class="bg-sky-50 border border-sky-100 p-5 rounded-lg mb-8 text-sm text-slate-800">
+                    <strong>FY2026 Commentary:</strong> Net sales increased by $442.4 million over FY25. The significant increases in Telecom, Healthcare, Retail, and Financial Services were driven largely by Large Enterprise Customer Demand. Telecom skyrocketed 58.8%, heavily driven by Verizon Communications Inc. (24% of total net sales).
+                </div>
+                
+                <div class="space-y-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-8">
+                        <h3 class="font-bold text-slate-800 mb-4">Customer End Markets (Net Sales $M)</h3>
+                        <div class="chart-container"><canvas id="marketChart"></canvas></div>
+                    </div>
+                    
+                    <div class="overflow-x-auto bg-white border border-slate-200 rounded-lg shadow-sm">
+                        <table class="w-full data-table">
+                            <thead><tr><th>Net Sales ($M)</th><th class="text-right">FY22</th><th class="text-right">FY23</th><th class="text-right">FY24</th><th class="text-right">FY25</th><th class="text-right">FY26</th></tr></thead>
+                            <tbody>
+                                <tr><td class="font-medium text-slate-800">Telecom & Media</td><td class="text-right">502.4</td><td class="text-right">532.9</td><td class="text-right">547.5</td><td class="text-right">453.9</td><td class="text-right">720.6</td></tr>
+                                <tr><td class="font-medium text-slate-800">Healthcare</td><td class="text-right">270.5</td><td class="text-right">274.9</td><td class="text-right">278.9</td><td class="text-right">286.5</td><td class="text-right">314.9</td></tr>
+                                <tr><td class="font-medium text-slate-800">State, Local & Education (SLED)</td><td class="text-right">241.8</td><td class="text-right">290.6</td><td class="text-right">329.6</td><td class="text-right">333.4</td><td class="text-right">308.7</td></tr>
+                                <tr><td class="font-medium text-slate-800">Technology</td><td class="text-right">250.5</td><td class="text-right">393.6</td><td class="text-right">379.7</td><td class="text-right">300.5</td><td class="text-right">300.8</td></tr>
+                                <tr><td class="font-medium text-slate-800">Financial Services</td><td class="text-right">155.2</td><td class="text-right">156.3</td><td class="text-right">243.6</td><td class="text-right">174.8</td><td class="text-right">244.7</td></tr>
+                                <tr><td class="font-medium text-slate-800">Retail</td><td class="text-right">N/A</td><td class="text-right">N/A</td><td class="text-right">36.1</td><td class="text-right">103.2</td><td class="text-right">136.4</td></tr>
+                                <tr><td class="font-medium text-slate-800">Other</td><td class="text-right">312.7</td><td class="text-right">366.9</td><td class="text-right">362.1</td><td class="text-right">347.6</td><td class="text-right">416.1</td></tr>
+                                <tr class="bg-slate-100"><td class="font-bold text-slate-900 border-t-2 border-slate-300">TOTAL NET SALES</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">1,733.1</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">2,015.2</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">2,177.5</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">1,999.9</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">2,442.2</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="p-3 text-xs text-slate-500 bg-slate-50 border-t border-slate-200">*Note: Retail was bundled into the "Other" category prior to FY2024.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub Tab 3: Headcount -->
+            <div id="tab-headcount" class="sub-tab-content">
+                <div class="grid lg:grid-cols-3 gap-8 mb-8">
+                    <div class="lg:col-span-2">
+                        <p class="text-sm text-slate-700 mb-4 bg-white p-4 border border-slate-200 rounded shadow-sm"><strong>Strategic Focus:</strong> Over 80% of headcount growth is concentrated in customer-facing roles (sales, marketing, professional, managed services) to support complex, consultative IT solutions.</p>
+                        <ul class="text-sm text-slate-600 space-y-3 bg-white p-5 border border-slate-200 rounded shadow-sm">
+                            <li><strong>FY23 (+175):</strong> Heavily driven by demand for services and acquisition of Future Com (added 139 customer-facing employees).</li>
+                            <li><strong>FY24 (+146):</strong> Propelled by Network Solutions Group (NSG) adding 76 employees, and PEAK Resources adding 28.</li>
+                            <li><strong>FY25 (+299):</strong> Largest single-year jump. Almost entirely due to August 2024 acquisition of Bailiwick, which added 441 employees. Caused "Pro/Managed Services" to spike from 816 to 1,093.</li>
+                            <li><strong>FY26 (-51):</strong> Minor contraction following rapid expansion (Pro/Managed -14, Sales/Mktg -8, Admin -3).</li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-900 text-white p-5 rounded-lg shadow-md flex flex-col justify-center">
+                        <h4 class="text-sky-400 text-xs font-mono mb-2">GEOGRAPHIC DISTRIBUTION (FY26)</h4>
+                        <div class="text-4xl font-bold mb-1">2,148</div>
+                        <div class="text-sm text-slate-400 mb-4">Total Employees</div>
+                        <div class="space-y-2 text-sm border-t border-slate-700 pt-3">
+                            <div class="flex justify-between"><span>United States:</span> <strong>2,094</strong></div>
+                            <div class="flex justify-between"><span>India:</span> <strong>29</strong></div>
+                            <div class="flex justify-between"><span>United Kingdom:</span> <strong>25</strong></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 mb-8">
+                        <h3 class="font-bold text-slate-800 mb-4">Functional Area Headcount Trends</h3>
+                        <div class="chart-container"><canvas id="hcChart"></canvas></div>
+                    </div>
+                    
+                    <div class="overflow-x-auto bg-white border border-slate-200 rounded-lg shadow-sm">
+                        <table class="w-full data-table">
+                            <thead><tr><th>Functional Area</th><th class="text-right">FY22</th><th class="text-right">FY23</th><th class="text-right">FY24</th><th class="text-right">FY25</th><th class="text-right">FY26</th></tr></thead>
+                            <tbody>
+                                <tr><td class="font-medium text-slate-800">Professional and Managed Services</td><td class="text-right">666</td><td class="text-right">750</td><td class="text-right">816</td><td class="text-right">1,093</td><td class="text-right">1,079</td></tr>
+                                <tr><td class="font-medium text-slate-800">Sales and Marketing</td><td class="text-right">588</td><td class="text-right">644</td><td class="text-right">719</td><td class="text-right">714</td><td class="text-right">705</td></tr>
+                                <tr><td class="font-medium text-slate-800">Administration</td><td class="text-right">317</td><td class="text-right">354</td><td class="text-right">359</td><td class="text-right">386</td><td class="text-right">358</td></tr>
+                                <tr><td class="font-medium text-slate-800">Executive</td><td class="text-right">6</td><td class="text-right">6</td><td class="text-right">6</td><td class="text-right">6</td><td class="text-right">6</td></tr>
+                                <tr class="bg-slate-100"><td class="font-bold text-slate-900 border-t-2 border-slate-300">TOTAL HEADCOUNT</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">1,577</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">1,754</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">1,900</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">2,199</td><td class="text-right font-bold text-slate-900 border-t-2 border-slate-300">2,148</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="p-3 text-xs text-slate-500 bg-slate-50 border-t border-slate-200">*Note: In FY2022, the firm reported "Administration" (229) and "Internal IT" (88) separately. Consolidated under "Administration" from FY2023 onward.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 3: Market Performance -->
+        <section id="sec-market" class="page-section p-6 md:p-10 lg:p-12 max-w-7xl mx-auto">
+            <header class="mb-8 border-b border-slate-200 pb-4">
+                <h2 class="text-3xl font-bold text-slate-900">Market Performance: NASDAQ:PLUS</h2>
+                <p class="text-slate-500 mt-2">5-Year Equity Action, Volume Analytics & Fundamental Valuation Drivers (Jul 2021 - Jun 2026).</p>
+            </header>
+
+            <div class="flex border-b border-slate-200 mb-6 overflow-x-auto">
+                <button class="sub-tab-btn active px-4 py-3 text-sm focus:outline-none whitespace-nowrap" data-parent="sec-market" data-target="tab-price-action">Price Action & Volume</button>
+                <button class="sub-tab-btn px-4 py-3 text-sm text-slate-500 hover:text-slate-800 focus:outline-none whitespace-nowrap" data-parent="sec-market" data-target="tab-valuation">Valuation Drivers</button>
+            </div>
+
+            <!-- Tab 1: Price Action & Volume -->
+            <div id="tab-price-action" class="sub-tab-content active">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-4 border border-slate-200 rounded-lg shadow-sm">
+                        <div class="text-xs font-mono text-slate-500 mb-1">LATEST CLOSE (06/12/26)</div>
+                        <div class="text-2xl font-bold text-slate-900">$83.19</div>
+                    </div>
+                    <div class="bg-white p-4 border border-slate-200 rounded-lg shadow-sm">
+                        <div class="text-xs font-mono text-slate-500 mb-1">5-YEAR RETURN</div>
+                        <div class="text-2xl font-bold text-emerald-600">+86.19%</div>
+                    </div>
+                    <div class="bg-white p-4 border border-slate-200 rounded-lg shadow-sm">
+                        <div class="text-xs font-mono text-slate-500 mb-1">STARTING PRICE (07/15/21)</div>
+                        <div class="text-2xl font-bold text-slate-700">$44.68</div>
+                    </div>
+                    <div class="bg-white p-4 border border-slate-200 rounded-lg shadow-sm">
+                        <div class="text-xs font-mono text-slate-500 mb-1">VOLUME (LATEST)</div>
+                        <div class="text-2xl font-bold text-slate-700">299.1K</div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm mb-8">
+                    <div class="flex justify-between items-end mb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-lg">5-Year Historical Trajectory & Volume</h3>
+                            <p class="text-sm text-slate-500">Dual-axis representation of price action against approximated monthly trading volume.</p>
+                        </div>
+                    </div>
+                    <div class="chart-container !shadow-none !border-0 !p-0"><canvas id="stockChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Valuation Drivers -->
+            <div id="tab-valuation" class="sub-tab-content">
+                <div class="bg-slate-900 text-white p-6 rounded-lg mb-8 shadow-md">
+                    <h3 class="text-xl font-bold mb-2">The Valuation Premium Shift</h3>
+                    <p class="text-sm text-slate-300">Over the past five years, the equity narrative for PLUS has shifted from a cyclical hardware distributor to a specialized services architect. This shift commands a higher price-to-earnings multiple as revenue visibility increases.</p>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Positive Drivers -->
+                    <div class="space-y-4">
+                        <div class="bg-emerald-50 border border-emerald-200 p-5 rounded-lg shadow-sm border-l-4 border-l-emerald-500">
+                            <h4 class="font-bold text-slate-900 text-sm mb-1 uppercase tracking-wide">Margin Expansion via Services</h4>
+                            <p class="text-sm text-slate-700">The market applies a premium multiple to recurring service revenue over cyclical hardware sales. The firm's deliberate M&A strategy (e.g., Bailiwick in FY25 for $124.9M) directly expanded professional/managed service gross billings, driving equity valuation upward across FY25 and FY26.</p>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-200 p-5 rounded-lg shadow-sm border-l-4 border-l-emerald-500">
+                            <h4 class="font-bold text-slate-900 text-sm mb-1 uppercase tracking-wide">AI Infrastructure Boom (FY26)</h4>
+                            <p class="text-sm text-slate-700">Positioning as the sole U.S. partner with dual NVIDIA DGX-Ready specializations allowed the firm to capture the enterprise rush for AI readiness, heavily influencing the massive 58.8% YoY net sales spike in the Telecom sector (driven heavily by Verizon).</p>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-200 p-5 rounded-lg shadow-sm border-l-4 border-l-emerald-500">
+                            <h4 class="font-bold text-slate-900 text-sm mb-1 uppercase tracking-wide">Capital Unlocking (Financing Sale)</h4>
+                            <p class="text-sm text-slate-700">The June 2025 divestiture of the financing arm for $180M cash removed a capital-intensive segment, providing liquidity for pure-play IT expansion and share repurchases, interpreted by the market as a structurally bullish signal.</p>
+                        </div>
+                    </div>
+
+                    <!-- Negative Drivers -->
+                    <div class="space-y-4">
+                        <div class="bg-red-50 border border-red-200 p-5 rounded-lg shadow-sm border-l-4 border-l-red-500">
+                            <h4 class="font-bold text-slate-900 text-sm mb-1 uppercase tracking-wide">Supply Chain Volatility (FY22/FY23)</h4>
+                            <p class="text-sm text-slate-700">Historical dips in equity value (e.g., late FY22 and FY23) were driven by general semiconductor shortages disrupting physical hardware fulfillment. Recent pressures stem from AI-induced memory/storage shortages, resulting in rapid price hikes and delayed revenue recognition.</p>
+                        </div>
+                        <div class="bg-red-50 border border-red-200 p-5 rounded-lg shadow-sm border-l-4 border-l-red-500">
+                            <h4 class="font-bold text-slate-900 text-sm mb-1 uppercase tracking-wide">Federal SLED Contraction</h4>
+                            <p class="text-sm text-slate-700">Initiatives by the Department of Government Efficiency (DOGE) decreased available funds for State, Local, and Education (SLED) customers and forced early termination of government financing contracts, creating a top-line drag in public sectors.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 4: GTM & Tech -->
+        <section id="sec-gtm" class="page-section p-6 md:p-10 lg:p-12 max-w-7xl mx-auto">
+            <header class="mb-8 border-b border-slate-200 pb-4">
+                <h2 class="text-3xl font-bold text-slate-900">Go-To-Market & Proprietary Tech</h2>
+            </header>
+
+            <div class="flex border-b border-slate-200 mb-6 overflow-x-auto">
+                <button class="sub-tab-btn active px-4 py-3 text-sm focus:outline-none whitespace-nowrap" data-parent="sec-gtm" data-target="tab-sales">Sales Motion & Channels</button>
+                <button class="sub-tab-btn px-4 py-3 text-sm text-slate-500 hover:text-slate-800 focus:outline-none whitespace-nowrap" data-parent="sec-gtm" data-target="tab-delivery">Delivery & Solutions</button>
+                <button class="sub-tab-btn px-4 py-3 text-sm text-slate-500 hover:text-slate-800 focus:outline-none whitespace-nowrap" data-parent="sec-gtm" data-target="tab-software">OneSource® Software Platform</button>
+            </div>
+
+            <!-- Tab: Sales -->
+            <div id="tab-sales" class="sub-tab-content active">
+                <p class="text-slate-700 mb-6">The company employs a highly consultative, solutions-driven go-to-market strategy targeting middle-market to large enterprises, and SLED institutions.</p>
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        <h3 class="text-xl font-bold text-slate-900 mb-4">Consultative, Team-Based Selling</h3>
+                        <p class="text-sm text-slate-600 mb-4">Account executives are trained broadly and supported by inside sales. To design custom solutions, they bring in <strong>pre-sales engineers</strong> and <strong>subject-matter experts</strong> to engage directly with customers. Selling based on business outcomes significantly increases cross-selling of bundled solutions.</p>
+                        <p class="text-sm text-slate-600 mb-4"><strong>Stakeholder Targeting:</strong> Technology procurement decisions are made outside traditional IT. Sales targets IT departments, lines of business, business units, and finance departments.</p>
+                        <p class="text-sm text-slate-600"><strong>Sales Force Compensation:</strong> Mix of salary and commission. As representatives gain experience and build portfolios, commission becomes the primary component of their overall compensation.</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
+                            <h4 class="font-bold text-slate-800 mb-2">Acquisition & Marketing Channels</h4>
+                            <ul class="text-sm text-slate-600 list-disc pl-5 space-y-2">
+                                <li>Personal relationships and networking (Direct Sales).</li>
+                                <li>Electronic commerce platforms (private marketplace experiences).</li>
+                                <li>Direct marketing, digital campaigns, and social media.</li>
+                                <li><strong>Vendor partnerships:</strong> Joint marketing, targeted demand-generation. Vendors frequently provide financial reimbursements (MDF), outsourced services, and personnel to assist.</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm">
+                            <h4 class="font-bold text-slate-800 mb-2">Contracting & Procurement</h4>
+                            <ul class="text-sm text-slate-600 list-disc pl-5 space-y-2">
+                                <li><strong>CMAs:</strong> Customer Master Agreements dictate terms/pricing for enterprise.</li>
+                                <li><strong>Standard Purchase Orders:</strong> Utilized for customers without formal CMAs.</li>
+                                <li><strong>Public Bidding:</strong> Frequent mechanism for SLED and government customers.</li>
+                                <li><strong>SOWs:</strong> Statements of Work govern service engagements (primarily fixed-price, some time-and-materials).</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Delivery & Solutions -->
+            <div id="tab-delivery" class="sub-tab-content">
+                <div class="mb-8">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-4">How Services Are Delivered</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                            <h4 class="font-bold text-sky-600 mb-2">Consulting & Advisory</h4>
+                            <p class="text-sm text-slate-600">Gaining clarity and devising strategies that drive transformation (e.g., answering "We lack insight and guidance to streamline and modernize IT").</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                            <h4 class="font-bold text-sky-600 mb-2">Managed Services</h4>
+                            <p class="text-sm text-slate-600">Offloading IT management to reduce complexity (e.g., answering "We spend too much time managing IT, instead of managing outcomes").</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                            <h4 class="font-bold text-sky-600 mb-2">As-a-Service Consumption</h4>
+                            <p class="text-sm text-slate-600">Leveraging dynamic, flexible consumption models to scale quickly.</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                            <h4 class="font-bold text-sky-600 mb-2">Design, Architect & Implement</h4>
+                            <p class="text-sm text-slate-600">Streamlining deployments, maximizing impact, and speeding ROI for complex initiatives.</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                            <h4 class="font-bold text-sky-600 mb-2">Lifecycle Services</h4>
+                            <p class="text-sm text-slate-600">Realizing the full potential from IT investments from procurement to secure disposal.</p>
+                        </div>
+                        <div class="bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+                            <h4 class="font-bold text-sky-600 mb-2">Technology Resourcing</h4>
+                            <p class="text-sm text-slate-600">Expanding the customer's IT talent bench and meeting global service demands to solve IT skill gaps.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Software -->
+            <div id="tab-software" class="sub-tab-content">
+                <div class="bg-slate-900 text-white p-8 rounded-xl shadow-xl">
+                    <h3 class="text-2xl font-bold mb-3">OneSource® Family of Software</h3>
+                    <p class="text-slate-400 text-sm mb-8">A suite of cloud-hosted, proprietary software (Procure+®, Manage+®, Docpak®, Viewmark®). This is a foundational element designed to streamline how enterprises buy, track, and retire technology, granting deep integration into customer workflows.</p>
+                    
+                    <div class="grid md:grid-cols-2 gap-8 mb-8">
+                        <div>
+                            <h4 class="text-sky-400 font-bold mb-3 border-b border-slate-700 pb-2">Core Capabilities</h4>
+                            <ul class="space-y-4 text-sm text-slate-300">
+                                <li><strong class="text-white block">Total Supply Chain Control</strong> Automates and optimizes procurement and management of owned, leased, and consumption-based assets.</li>
+                                <li><strong class="text-white block">Private Cloud Marketplaces</strong> Integrates directly with AWS Marketplace, Azure Marketplace, and Google Cloud Marketplace.</li>
+                                <li><strong class="text-white block">Front-End Procurement Automation</strong> Handles order aggregation, order automation, vendor performance measurement, reconciliation, and payment.</li>
+                                <li><strong class="text-white block">Lifecycle & End-of-Life</strong> Asset/change management, property tax filing, equipment audits, secure removal, and disposal.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="text-red-400 font-bold mb-3 border-b border-slate-700 pb-2">Accreditations & Inherent Risks</h4>
+                            <div class="bg-slate-800 p-4 rounded mb-4">
+                                <span class="text-xs font-mono text-slate-400 block mb-1">CERTIFICATION</span>
+                                <strong>AICPA SSAE Type 2 SOC 1</strong>
+                            </div>
+                            <ul class="space-y-4 text-sm text-slate-300">
+                                <li><strong class="text-white block">Inherent Software Complexity Risks:</strong> Electronic commerce automation is highly complex. The software could contain unknown errors, use vulnerable open-source code, or experience performance problems.</li>
+                                <li><strong class="text-white block">Cybersecurity & Downtime Vulnerabilities:</strong> Cloud-hosted platforms are targets for hackers (unauthorized procurement, data exposure). Customers could lose access due to power loss at data centers or internet outages.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 5: Leadership & Board -->
+        <section id="sec-leadership" class="page-section p-6 md:p-10 lg:p-12 max-w-7xl mx-auto">
+            <header class="mb-8 border-b border-slate-200 pb-4">
+                <h2 class="text-3xl font-bold text-slate-900">Leadership Team & Board of Directors</h2>
+                <p class="text-slate-500 mt-2">Currently serving personnel. Names and Bios extracted directly from corporate repository (Jun 2026).</p>
+            </header>
+
+            <div class="flex border-b border-slate-200 mb-6 overflow-x-auto">
+                <button class="sub-tab-btn active px-4 py-3 text-sm focus:outline-none whitespace-nowrap" data-parent="sec-leadership" data-target="tab-execs">Executive Team</button>
+                <button class="sub-tab-btn px-4 py-3 text-sm text-slate-500 hover:text-slate-800 focus:outline-none whitespace-nowrap" data-parent="sec-leadership" data-target="tab-board">Board of Directors</button>
+            </div>
+
+            <!-- Tab: Execs -->
+            <div id="tab-execs" class="sub-tab-content active">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">MM</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Mark P. Marron</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Mr. Mark P. Marron serves as President and Chief Executive Officer at ePlus Inc. since August 1, 2016 and has been its Director since November 14, 2018. Mr. Marron began his career at ePlus Technology, Inc. in 2005 as Senior Vice President of Sales. On April 22, 2010, Mr. Marron was appointed as Chief Operating Officer of ePlus and as President of ePlus Technology, Inc. Prior to this, from 2001 to 2005, Mr. Marron served as Senior Vice President of Worldwide sales & services of NetIQ. Prior to joining NetIQ, Mr. Marron served as Senior Vice President and General Manager of Worldwide channel sales for Computer Associates International Inc. Mr. Marron has extensive experience throughout North America, Europe, the Middle East, and Africa and holds Bachelors of Science degree in Computer Science from Montclair State University.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">EM</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Elaine D. Marion</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Ms. Elaine D. Marion serves as Chief Financial Officer at ePlus inc. since September 1, 2008. She previously served as Vice President of Accounting from 2004 to 2008. Ms. Marion joined the company in 1998 and directs all financial management and reporting.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">DR</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Darren S. Raiguel</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Mr. Darren S. Raiguel serves as Chief Operating Officer at ePlus inc. since May 2018. He joined the company in 1997 as an Account Executive, rising through leadership ranks to oversee national operations and go-to-market strategies.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">ES</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Erica S. Stoecker</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Ms. Erica S. Stoecker serves as Chief Compliance Officer and General Counsel. She manages corporate governance, legal compliance, and mitigates liabilities associated with acquisitions and corporate contracts.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">GK</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">George Douglas King</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Mr. George Douglas King serves as Chief Information Officer. Leads internal IT infrastructure and the ongoing development and security of the proprietary OneSource software platform.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">JB</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">John Bengivenni</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Mr. John Bengivenni serves as Executive VP of Sales. He drives the consultative 'Land and Expand' sales motion across enterprise and SLED markets.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">KP</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Kleyton L. Parkhurst</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Mr. Kleyton L. Parkhurst serves as Senior VP of Corporate Development. He is the architect of the inorganic growth strategy, leading the sourcing and execution of the company's aggressive M&A roll-up.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">JP</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Jenifer Pape</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Ms. Jenifer Pape serves as Vice President of Human Resources. She manages the human capital moat, focusing on recruiting and retaining highly certified technical engineering talent.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">DF</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Dan Farrell</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Mr. Dan Farrell serves as Senior VP of Services. He leads the expansion of the Professional and Managed Services divisions, the primary drivers of gross margin expansion.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">KF</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Kenneth G. Farber</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Mr. Kenneth G. Farber serves as President of ePlus Software. He oversees the strategic direction of the OneSource suite and e-commerce supply chain integrations.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Board -->
+            <div id="tab-board" class="sub-tab-content">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">BB</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Bruce M. Bowen</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Mr. Bruce M. Bowen serves as the Independent Chairman of the Board. He brings extensive executive and governance experience, providing independent strategic oversight for capital allocation.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">MM</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Mark P. Marron</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Mr. Mark P. Marron serves as Director. Serves as the internal bridge between the executive execution team and the board of directors.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">JC</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">John E. Callies</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Mr. John E. Callies serves as an Independent Director. He holds significant expertise in IT channel financing and enterprise hardware sales strategies.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">MM</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Maureen F. Morrison</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Ms. Maureen F. Morrison serves as an Independent Director, providing robust financial oversight, audit expertise, and enterprise governance knowledge to the board.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">RB</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Renee Bergeron</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Ms. Renee Bergeron serves as an Independent Director. She provides crucial insight into cloud ecosystems and transition strategies for legacy IT resellers moving toward XaaS models.</p>
+                        </div>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:border-sky-400 transition-colors flex gap-4">
+                        <div class="avatar-circle">MB</div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 text-lg mb-2">Melissa Jane Ballenger</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed">Ms. Melissa Jane Ballenger serves as an Independent Director. She contributes modern risk management, operational strategy, and compliance experience to the board.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 6: M&A Timeline -->
+        <section id="sec-mna" class="page-section p-6 md:p-10 lg:p-12 max-w-7xl mx-auto">
+            <header class="mb-8 border-b border-slate-200 pb-4">
+                <h2 class="text-3xl font-bold text-slate-900">Inorganic Growth (M&A) Timeline</h2>
+            </header>
+
+            <div class="mb-10 text-slate-700 leading-relaxed bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                <p class="mb-4">Inorganic growth is a crucial pillar of the corporate strategy. Since 1997, nearly 30 acquisitions have been integrated to broaden product offerings, deepen engineering capabilities, and expand the geographic footprint.</p>
+                <p>Recent strategic acquisitions like Bailiwick, Network Solutions Group (NSG), and PEAK Resources heavily bolstered professional services and regional market presence. Capital allocation is strictly disciplined around two primary vectors: Geographic density (acquiring regional VARs) and Capability enhancement (acquiring specialized security MSSPs or cloud consultancies).</p>
+            </div>
+
+            <!-- CSS Vertical Timeline -->
+            <div class="bg-white p-6 md:p-8 rounded-xl border border-slate-200 shadow-sm mb-12">
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Execution Timeline</h3>
+                <p class="text-sm text-slate-500 mb-6 border-b border-slate-100 pb-4">Chronological execution of public acquisitions (Newest to Oldest). Increasing purchase price on acquisition over time likely driven by stronger balance sheet.</p>
+                
+                <!-- HARDCODED VERTICAL TIMELINE -->
+                <div class="v-timeline">
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">Realwave</h4><div class="text-sm text-slate-500 font-mono mt-1">Sep 2025 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-slate-100 text-slate-500 px-2 py-1 rounded text-xs italic">Undisclosed</span></div>
+                        </div>
+                    </div>
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">Bailiwick Services</h4><div class="text-sm text-slate-500 font-mono mt-1">Aug 2024 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm font-bold border border-emerald-100">$124.9M</span></div>
+                        </div>
+                    </div>
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">PEAK resources</h4><div class="text-sm text-slate-500 font-mono mt-1">Jan 2024 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm font-bold border border-emerald-100">$7.9M</span></div>
+                        </div>
+                    </div>
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">Network solutions group</h4><div class="text-sm text-slate-500 font-mono mt-1">Apr 2023 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm font-bold border border-emerald-100">$59.6M</span></div>
+                        </div>
+                    </div>
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">Futurecom</h4><div class="text-sm text-slate-500 font-mono mt-1">Jul 2022 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm font-bold border border-emerald-100">$13.0M</span></div>
+                        </div>
+                    </div>
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">System Management and Planning</h4><div class="text-sm text-slate-500 font-mono mt-1">Dec 2020 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm font-bold border border-emerald-100">$27.1M</span></div>
+                        </div>
+                    </div>
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">Innovative technology systems</h4><div class="text-sm text-slate-500 font-mono mt-1">Aug 2019 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm font-bold border border-emerald-100">$15.3M</span></div>
+                        </div>
+                    </div>
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">SLAIT</h4><div class="text-sm text-slate-500 font-mono mt-1">Jan 2019 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm font-bold border border-emerald-100">$50.6M</span></div>
+                        </div>
+                    </div>
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">Integrated data storage</h4><div class="text-sm text-slate-500 font-mono mt-1">Sep 2017 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm font-bold border border-emerald-100">$44.8M</span></div>
+                        </div>
+                    </div>
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">One Cloud Consulting</h4><div class="text-sm text-slate-500 font-mono mt-1">May 2017 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm font-bold border border-emerald-100">$13.3M</span></div>
+                        </div>
+                    </div>
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">Consolidated communications</h4><div class="text-sm text-slate-500 font-mono mt-1">Dec 2016 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm font-bold border border-emerald-100">$13.2M</span></div>
+                        </div>
+                    </div>
+                    <div class="v-timeline-card relative">
+                        <div class="v-timeline-node"></div>
+                        <div class="flex justify-between items-start">
+                            <div><h4 class="font-bold text-slate-900 text-lg">IGX</h4><div class="text-sm text-slate-500 font-mono mt-1">Dec 2015 | Region: US</div></div>
+                            <div class="mt-1"><span class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-sm font-bold border border-emerald-100">$16.6M</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bar Chart & Table side-by-side -->
+            <div class="grid lg:grid-cols-2 gap-8 items-start">
+                <!-- Bar Chart -->
+                <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                    <h3 class="font-bold text-slate-800 mb-4">Transaction Value Expansion ($M)</h3>
+                    <div class="chart-container !border-0 !shadow-none !p-0 !h-[300px]"><canvas id="mnaChart"></canvas></div>
+                </div>
+                
+                <!-- Data Table (Descending) -->
+                <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                    <!-- HARDCODED TABLE -->
+                    <table class="w-full data-table">
+                        <thead><tr><th>Target Company</th><th>Date</th><th>Region</th><th class="text-right">Price ($M)</th></tr></thead>
+                        <tbody>
+                            <tr><td class="font-medium text-slate-800">Realwave</td><td>9/10/2025</td><td>US</td><td class="text-right italic text-slate-400">Undisclosed</td></tr>
+                            <tr><td class="font-medium text-slate-800">Bailiwick Services</td><td>8/19/2024</td><td>US</td><td class="text-right font-bold text-slate-900">$124.9</td></tr>
+                            <tr><td class="font-medium text-slate-800">PEAK resources</td><td>1/26/2024</td><td>US</td><td class="text-right font-bold text-slate-900">$7.9</td></tr>
+                            <tr><td class="font-medium text-slate-800">Network solutions group</td><td>4/30/2023</td><td>US</td><td class="text-right font-bold text-slate-900">$59.6</td></tr>
+                            <tr><td class="font-medium text-slate-800">Futurecom</td><td>7/15/2022</td><td>US</td><td class="text-right font-bold text-slate-900">$13.0</td></tr>
+                            <tr><td class="font-medium text-slate-800">System Management and Planning</td><td>12/31/2020</td><td>US</td><td class="text-right font-bold text-slate-900">$27.1</td></tr>
+                            <tr><td class="font-medium text-slate-800">Innovative technology systems</td><td>8/23/2019</td><td>US</td><td class="text-right font-bold text-slate-900">$15.3</td></tr>
+                            <tr><td class="font-medium text-slate-800">SLAIT</td><td>1/18/2019</td><td>US</td><td class="text-right font-bold text-slate-900">$50.6</td></tr>
+                            <tr><td class="font-medium text-slate-800">Integrated data storage</td><td>9/15/2017</td><td>US</td><td class="text-right font-bold text-slate-900">$44.8</td></tr>
+                            <tr><td class="font-medium text-slate-800">One Cloud Consulting</td><td>5/17/2017</td><td>US</td><td class="text-right font-bold text-slate-900">$13.3</td></tr>
+                            <tr><td class="font-medium text-slate-800">Consolidated communications</td><td>12/5/2016</td><td>US</td><td class="text-right font-bold text-slate-900">$13.2</td></tr>
+                            <tr><td class="font-medium text-slate-800">IGX</td><td>12/4/2015</td><td>US</td><td class="text-right font-bold text-slate-900">$16.6</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 7: Geospatial -->
+        <section id="sec-locations" class="page-section p-6 md:p-10 lg:p-12 max-w-7xl mx-auto w-full h-full">
+            <header class="mb-8 border-b border-slate-200 pb-4">
+                <h2 class="text-3xl font-bold text-slate-900">Geospatial Footprint</h2>
+            </header>
+            
+            <p class="text-slate-700 mb-6 text-sm">
+                Rendering 26 verified physical locations extracted from corporate directories. Proximity supports physical data center deployments and on-site engineering. 
+            </p>
+            
+            <div class="bg-white p-2 rounded border border-slate-200 shadow-sm relative z-0 mb-4">
+                <div id="map"></div>
+            </div>
+            
+            <div class="flex flex-wrap gap-6 text-sm text-slate-600 justify-center bg-white p-4 rounded border border-slate-200 shadow-sm">
+                <span class="flex items-center"><span class="w-3 h-3 bg-slate-900 rounded-full inline-block mr-2 shadow-sm"></span> Global HQ (Herndon, VA)</span>
+                <span class="flex items-center"><span class="w-3 h-3 bg-sky-500 rounded-full inline-block mr-2 shadow-sm"></span> Customer Innovation Center (Sterling)</span>
+                <span class="flex items-center"><span class="w-3 h-3 bg-teal-500 rounded-full inline-block mr-2 shadow-sm"></span> Regional / Intl Hubs</span>
+            </div>
+        </section>
+
+        <!-- MODULE 8: Risk & Ownership -->
+        <section id="sec-risks" class="page-section p-6 md:p-10 lg:p-12 max-w-7xl mx-auto mb-20">
+            <header class="mb-8 border-b border-slate-200 pb-4">
+                <h2 class="text-3xl font-bold text-slate-900">Risk Matrix & Ownership Structure</h2>
+            </header>
+
+            <div class="flex border-b border-slate-200 mb-6 overflow-x-auto">
+                <button class="sub-tab-btn active px-4 py-3 text-sm focus:outline-none whitespace-nowrap" data-parent="sec-risks" data-target="tab-risks">Primary Risk Factors</button>
+                <button class="sub-tab-btn px-4 py-3 text-sm text-slate-500 hover:text-slate-800 focus:outline-none whitespace-nowrap" data-parent="sec-risks" data-target="tab-ownership">Ownership Structure</button>
+            </div>
+
+            <!-- Tab: Risks -->
+            <div id="tab-risks" class="sub-tab-content active">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    <div class="bg-white p-5 border border-slate-200 rounded-lg shadow-sm border-l-4 border-l-red-500">
+                        <h3 class="font-bold text-slate-900 mb-2">1. Reliance on Key Customers & Vendors</h3>
+                        <p class="text-xs font-mono bg-red-50 text-red-700 px-2 py-1 inline-block rounded mb-2">Concentration Risk</p>
+                        <ul class="text-sm text-slate-600 space-y-2 list-disc pl-4">
+                            <li><strong>Customer Concentration:</strong> Verizon accounted for 24% of FY26 net sales and 36% of Accounts Receivable. Loss or material reduction in spending severely impacts earnings.</li>
+                            <li><strong>Vendor Concentration:</strong> Cisco historically accounts for 32-44% of net sales. NetApp, HPE, Dell EMC account for another 23-25%. Altered partnership terms or direct-selling shifts harm margins.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white p-5 border border-slate-200 rounded-lg shadow-sm border-l-4 border-l-orange-500">
+                        <h3 class="font-bold text-slate-900 mb-2">2. Supply Chain Disruptions & Inflation</h3>
+                        <p class="text-xs font-mono bg-orange-50 text-orange-700 px-2 py-1 inline-block rounded mb-2">Operational Constraint</p>
+                        <ul class="text-sm text-slate-600 space-y-2 list-disc pl-4">
+                            <li><strong>AI-Driven Shortages:</strong> Massive demand for AI workloads created an industry-wide shortage in enterprise computer storage and memory chips (rapid price hikes/delayed lead times).</li>
+                            <li><strong>Margin & Order Risk:</strong> Inability to pass price increases to customers (e.g., highly regulated Gov contracts) squeezes margins. Extended delays risk customer order cancellations while locked into supplier commitments.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white p-5 border border-slate-200 rounded-lg shadow-sm border-l-4 border-l-amber-500">
+                        <h3 class="font-bold text-slate-900 mb-2">3. Macro & Gov Spending (DOGE)</h3>
+                        <p class="text-xs font-mono bg-amber-50 text-amber-700 px-2 py-1 inline-block rounded mb-2">Market Exposure</p>
+                        <ul class="text-sm text-slate-600 space-y-2 list-disc pl-4">
+                            <li><strong>Federal Spending Cuts:</strong> Dept. of Government Efficiency (DOGE) initiatives actively decreased SLED funding, caused early terminations of Gov financing contracts, and tightened public-sector lender pools.</li>
+                            <li><strong>General Economy:</strong> Inflation, high interest rates, tariffs, and geopolitical conflicts delay enterprise CapEx.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white p-5 border border-slate-200 rounded-lg shadow-sm border-l-4 border-l-slate-700">
+                        <h3 class="font-bold text-slate-900 mb-2">4. Structural & Operational Vulnerabilities</h3>
+                        <p class="text-xs font-mono bg-slate-100 text-slate-700 px-2 py-1 inline-block rounded mb-2">Execution Risk</p>
+                        <ul class="text-sm text-slate-600 space-y-2 list-disc pl-4">
+                            <li><strong>Financing Sale:</strong> Removing a profitable segment makes the firm entirely reliant on core IT operations. Risk of not realizing contingent consideration tied to the sale.</li>
+                            <li><strong>M&A Integration:</strong> Acquiring ~30 companies carries severe cultural/technical integration risks and potential for hidden liabilities.</li>
+                            <li><strong>Talent Scarcity:</strong> Retaining engineers/AI specialists is vital; wage inflation compresses margins.</li>
+                            <li><strong>Credit Reliance:</strong> Heavy reliance on Wells Fargo credit facility ($500M floor planning / $200M revolving) to fund inventory.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white p-5 border border-slate-200 rounded-lg shadow-sm border-l-4 border-l-indigo-500">
+                        <h3 class="font-bold text-slate-900 mb-2">5. Cybersecurity & Data Privacy</h3>
+                        <p class="text-xs font-mono bg-indigo-50 text-indigo-700 px-2 py-1 inline-block rounded mb-2">Liability Exposure</p>
+                        <ul class="text-sm text-slate-600 space-y-2 list-disc pl-4">
+                            <li><strong>Growing Threats:</strong> As an MSP managing customer infrastructure/data centers, the firm is a prime target for ransomware, malware, and AI-enabled attacks.</li>
+                            <li><strong>Reputational Harm:</strong> A breach (internal or via third-party vendors) exposing sensitive data results in legal liability, regulatory fines, and lasting brand damage.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-white p-5 border border-slate-200 rounded-lg shadow-sm border-l-4 border-l-purple-500">
+                        <h3 class="font-bold text-slate-900 mb-2">6. The Shift to AI and Cloud "As-a-Service"</h3>
+                        <p class="text-xs font-mono bg-purple-50 text-purple-700 px-2 py-1 inline-block rounded mb-2">Disintermediation Risk</p>
+                        <ul class="text-sm text-slate-600 space-y-2 list-disc pl-4">
+                            <li><strong>Failure to Innovate:</strong> Rapid shift away from hardware toward SaaS/Cloud. Risk of losing market share to hyperscalers or competitors if skills/offerings don't adapt.</li>
+                            <li><strong>AI Ethical/Accuracy Risks:</strong> Integrating AI into operations/services creates new liabilities regarding deployment efficacy, AI errors, and social/ethical impacts.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Ownership -->
+            <div id="tab-ownership" class="sub-tab-content">
+                <div class="grid lg:grid-cols-2 gap-8 items-start">
+                    <div class="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                        <!-- HARDCODED TABLE -->
+                        <table class="w-full data-table">
+                            <thead><tr><th>Holder</th><th class="text-right">% Outstanding</th><th class="text-right">Value ($M)</th></tr></thead>
+                            <tbody>
+                                <tr><td class="font-medium text-slate-800">BlackRock Inc.</td><td class="text-right font-mono">15.46%</td><td class="text-right font-mono">$335</td></tr>
+                                <tr><td class="font-medium text-slate-800">River Road Asset Management LLC</td><td class="text-right font-mono">6.27%</td><td class="text-right font-mono">$136</td></tr>
+                                <tr><td class="font-medium text-slate-800">Dimensional Fund Advisors LP</td><td class="text-right font-mono">5.06%</td><td class="text-right font-mono">$110</td></tr>
+                                <tr><td class="font-medium text-slate-800">Vanguard Capital Management LLC</td><td class="text-right font-mono">4.50%</td><td class="text-right font-mono">$98</td></tr>
+                                <tr><td class="font-medium text-slate-800">Vanguard Portfolio Management LLC</td><td class="text-right font-mono">4.25%</td><td class="text-right font-mono">$92</td></tr>
+                                <tr><td class="font-medium text-slate-800">State Street Global Advisors Inc.</td><td class="text-right font-mono">3.91%</td><td class="text-right font-mono">$85</td></tr>
+                                <tr><td class="font-medium text-slate-800">American Century Investment Management Inc</td><td class="text-right font-mono">3.77%</td><td class="text-right font-mono">$82</td></tr>
+                                <tr><td class="font-medium text-slate-800">AltraVue Capital LLC</td><td class="text-right font-mono">3.58%</td><td class="text-right font-mono">$78</td></tr>
+                                <tr><td class="font-medium text-slate-800">FMR LLC</td><td class="text-right font-mono">2.95%</td><td class="text-right font-mono">$64</td></tr>
+                                <tr><td class="font-medium text-slate-800">Nationwide Fund Advisors</td><td class="text-right font-mono">2.93%</td><td class="text-right font-mono">$64</td></tr>
+                                <tr><td class="font-medium text-slate-800 border-t border-slate-300 bg-slate-50">Other</td><td class="text-right font-mono border-t border-slate-300 bg-slate-50">47.32%</td><td class="text-right font-mono border-t border-slate-300 bg-slate-50">$1,053</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-800 mb-4">Ownership Distribution</h3>
+                        <div class="chart-container !shadow-none !border-0"><canvas id="ownChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- App Logic -->
+    <script>
+        // M&A Chart Data
+        const mnaChartData = [
+            { target: "IGX", date: "12/4/2015", price: 16.6 },
+            { target: "Consolidated communications", date: "12/5/2016", price: 13.2 },
+            { target: "One Cloud Consulting", date: "5/17/2017", price: 13.3 },
+            { target: "Integrated data storage", date: "9/15/2017", price: 44.8 },
+            { target: "SLAIT", date: "1/18/2019", price: 50.6 },
+            { target: "Innovative technology systems", date: "8/23/2019", price: 15.3 },
+            { target: "System Management and Planning", date: "12/31/2020", price: 27.1 },
+            { target: "Futurecom", date: "7/15/2022", price: 13.0 },
+            { target: "Network solutions group", date: "4/30/2023", price: 59.6 },
+            { target: "PEAK resources", date: "1/26/2024", price: 7.9 },
+            { target: "Bailiwick Services", date: "8/19/2024", price: 124.9 }
+        ]; 
+
+        let mapInstance = null;
+        let cInst = {}; // chart instances
+
+        // ChartJS DataLabels Global Config
+        Chart.register(ChartDataLabels);
+        Chart.defaults.set('plugins.datalabels', {
+            color: '#fff', font: { weight: 'bold', size: 10 },
+            formatter: function(value, context) {
+                if(value > 1000) return (value/1000).toFixed(2) + 'B'; // Show billions
+                if(value > 100) return Math.round(value) + 'M'; // Show millions
+                return ''; // Hide small labels
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- Navigation Handlers ---
+            document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+                const m = document.getElementById('nav-menu');
+                m.classList.toggle('hidden'); m.classList.toggle('flex');
+            });
+
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const targetId = e.target.getAttribute('data-target');
+                    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    document.querySelectorAll('.page-section').forEach(sec => {
+                        if(sec.id === targetId) {
+                            sec.classList.add('active');
+                            // Lazy load modules
+                            if(targetId === 'sec-financials') initFin();
+                            if(targetId === 'sec-market') initMarket();
+                            if(targetId === 'sec-mna') initMNA();
+                            if(targetId === 'sec-locations') initMap();
+                            if(targetId === 'sec-risks') initOwn();
+                        } else sec.classList.remove('active');
+                    });
+                    
+                    if(window.innerWidth < 768) {
+                        document.getElementById('nav-menu').classList.add('hidden');
+                        document.getElementById('nav-menu').classList.remove('flex');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const parentId = e.target.getAttribute('data-parent');
+                    const targetId = e.target.getAttribute('data-target');
+                    document.querySelectorAll(`#${parentId} .sub-tab-btn`).forEach(b => {
+                        b.classList.remove('active'); b.classList.add('text-slate-500');
+                    });
+                    e.target.classList.add('active'); e.target.classList.remove('text-slate-500');
+                    document.querySelectorAll(`#${parentId} .sub-tab-content`).forEach(c => {
+                        if(c.id === targetId) c.classList.add('active'); else c.classList.remove('active');
+                    });
+                });
+            });
+
+            // --- Initializers with null-checks ---
+
+            function initFin() {
+                const prodEl = document.getElementById('prodChart');
+                if(prodEl && !cInst['prod']) {
+                    cInst['prod'] = new Chart(prodEl, {
+                        type: 'bar',
+                        data: { labels: ['FY22', 'FY23', 'FY24', 'FY25', 'FY26'], datasets: [
+                            {label: 'Networking', data: [709.7, 927.3, 1172.3, 929.7, 1152.1], backgroundColor: '#0F172A'},
+                            {label: 'Cloud/DC', data: [828.0, 892.3, 824.1, 865.9, 1016.7], backgroundColor: '#0EA5E9'},
+                            {label: 'Security', data: [476.3, 639.4, 625.4, 683.6, 841.5], backgroundColor: '#14B8A6'},
+                            {label: 'Collaboration', data: [131.9, 127.0, 121.0, 120.4, 109.5], backgroundColor: '#64748B'},
+                            {label: 'Other Prod', data: [240.6, 282.7, 262.4, 245.0, 252.1], backgroundColor: '#94A3B8'},
+                            {label: 'Service Billings', data: [239.2, 277.1, 324.6, 435.9, 466.6], backgroundColor: '#8B5CF6'}
+                        ]},
+                        options: { 
+                            responsive: true, maintainAspectRatio: false, 
+                            scales: { x: { stacked: true }, y: { stacked: true, title: {display: true, text: 'Millions USD'} } },
+                            plugins: {
+                                datalabels: {
+                                    display: function(context) { return context.datasetIndex === context.chart.data.datasets.length - 1; },
+                                    align: 'top', anchor: 'end', color: '#0F172A',
+                                    formatter: function(value, context) {
+                                        let sum = 0;
+                                        context.chart.data.datasets.forEach(ds => sum += ds.data[context.dataIndex]);
+                                        return '$' + (sum/1000).toFixed(2) + 'B'; 
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                const mktEl = document.getElementById('marketChart');
+                if(mktEl && !cInst['mkt']) {
+                    cInst['mkt'] = new Chart(mktEl, {
+                        type: 'line',
+                        data: { labels: ['FY22', 'FY23', 'FY24', 'FY25', 'FY26'], datasets: [
+                            {label: 'Telecom', data: [502.4, 532.9, 547.5, 453.9, 720.6], borderColor: '#0F172A', backgroundColor: '#0F172A'},
+                            {label: 'SLED', data: [241.8, 290.6, 329.6, 333.4, 308.7], borderColor: '#0EA5E9', backgroundColor: '#0EA5E9'},
+                            {label: 'Healthcare', data: [270.5, 274.9, 278.9, 286.5, 314.9], borderColor: '#14B8A6', backgroundColor: '#14B8A6'},
+                            {label: 'Tech', data: [250.5, 393.6, 379.7, 300.5, 300.8], borderColor: '#8B5CF6', backgroundColor: '#8B5CF6'}
+                        ]},
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: false } } }
+                    });
+                }
+                
+                const hcEl = document.getElementById('hcChart');
+                if(hcEl && !cInst['hc']) {
+                    cInst['hc'] = new Chart(hcEl, {
+                        type: 'line',
+                        data: { labels: ['FY22', 'FY23', 'FY24', 'FY25', 'FY26'], datasets: [
+                            {label: 'Pro/Managed Services', data: [666, 750, 816, 1093, 1079], borderColor: '#0EA5E9', backgroundColor: 'rgba(14,165,233,0.1)', fill: true},
+                            {label: 'Sales/Marketing', data: [588, 644, 719, 714, 705], borderColor: '#0F172A', backgroundColor: '#0F172A'}
+                        ]},
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels: { display: true, align: 'top', color: '#0F172A', formatter: v => v } } }
+                    });
+                }
+            }
+
+            function initMarket() {
+                const stockEl = document.getElementById('stockChart');
+                if(stockEl && !cInst['stk']) {
+                    cInst['stk'] = new Chart(stockEl, {
+                        type: 'line',
+                        data: {
+                            labels: ["Jul 21", "Sep 21", "Nov 21", "Jan 22", "Mar 22", "May 22", "Jul 22", "Sep 22", "Nov 22", "Jan 23", "Mar 23", "May 23", "Jul 23", "Sep 23", "Nov 23", "Jan 24", "Mar 24", "May 24", "Jul 24", "Sep 24", "Nov 24", "Jan 25", "Mar 25", "May 25", "Jul 25", "Sep 25", "Nov 25", "Jan 26", "Mar 26", "Jun 26"],
+                            datasets: [
+                                {
+                                    type: 'line',
+                                    label: 'PLUS Stock Proxy ($)',
+                                    data: [44.81, 46.50, 49.20, 55.40, 52.10, 48.30, 45.20, 48.50, 50.10, 53.20, 48.90, 52.40, 60.10, 58.40, 62.10, 65.20, 63.40, 68.50, 75.30, 72.10, 78.40, 80.20, 79.50, 82.10, 85.20, 83.10, 86.40, 88.10, 85.30, 83.19],
+                                    borderColor: '#0F172A', backgroundColor: 'rgba(15, 23, 42, 0.05)', fill: true, tension: 0.4,
+                                    pointBackgroundColor: '#0EA5E9', pointRadius: 4, yAxisID: 'y'
+                                },
+                                {
+                                    type: 'bar',
+                                    label: 'Volume (Thousands)',
+                                    data: [120, 150, 110, 200, 180, 140, 160, 190, 130, 210, 170, 160, 220, 180, 240, 310, 280, 350, 410, 380, 450, 420, 400, 480, 520, 490, 550, 580, 540, 299],
+                                    backgroundColor: '#94A3B8', yAxisID: 'y1'
+                                }
+                            ]
+                        },
+                        options: { 
+                            responsive: true, maintainAspectRatio: false, 
+                            plugins: { 
+                                legend: { display: false }, 
+                                datalabels: { 
+                                    display: function(context) {
+                                        if (context.dataset.type === 'bar') return false;
+                                        return [0, 8, 14, 21, 29].includes(context.dataIndex);
+                                    },
+                                    align: 'top', color: '#0F172A', font: {weight: 'bold'}, formatter: v => '$'+v.toFixed(2) 
+                                } 
+                            },
+                            scales: { 
+                                y: { type: 'linear', display: true, position: 'left', min: 30, title: {display: true, text: 'Price ($)'} },
+                                y1: { type: 'linear', display: false, position: 'right', min: 0, max: 2000, grid: { drawOnChartArea: false } }
+                            }
+                        }
+                    });
+                }
+            }
+
+            function initMNA() {
+                const mnaEl = document.getElementById('mnaChart');
+                if(mnaEl && !cInst['mnaC']) {
+                    cInst['mnaC'] = new Chart(mnaEl, {
+                        type: 'bar',
+                        data: { 
+                            labels: mnaChartData.map(d=>{ const yr = d.date.split('/')[2]; return `${d.target.substring(0,10)} ('${yr.substring(2)})`; }), 
+                            datasets: [{label: 'Price $M', data: mnaChartData.map(d=>d.price), backgroundColor: '#0EA5E9', borderRadius: 4}] 
+                        },
+                        options: { 
+                            responsive: true, maintainAspectRatio: false, 
+                            plugins: { legend: { display: false }, datalabels: { align: 'top', anchor: 'end', color: '#0F172A', formatter: v => '$'+v+'M' } },
+                            layout: { padding: { top: 20 } }
+                        }
+                    });
+                }
+            }
+
+            function initOwn() {
+                const ownEl = document.getElementById('ownChart');
+                if(ownEl && !cInst['ownC']) {
+                    cInst['ownC'] = new Chart(ownEl, {
+                        type: 'doughnut',
+                        data: { 
+                            labels: ["BlackRock Inc.", "River Road Asset Mgmt", "Dimensional Fund Adv.", "Vanguard Capital", "Vanguard Portfolio", "Other"], 
+                            datasets: [{data: [15.46, 6.27, 5.06, 4.50, 4.25, 64.46], backgroundColor: ['#0F172A','#0EA5E9','#14B8A6','#8B5CF6','#F59E0B','#E2E8F0']}] 
+                        },
+                        options: { 
+                            responsive: true, maintainAspectRatio: false, cutout: '60%',
+                            plugins: { datalabels: { color: '#fff', formatter: v => Math.round(v)+'%' } }
+                        }
+                    });
+                }
+            }
+
+            function initMap() {
+                const mapEl = document.getElementById('map');
+                if(mapEl && !mapInstance) { 
+                    mapInstance = L.map('map').setView([39.8283, -98.5795], 4);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM', maxZoom: 19 }).addTo(mapInstance);
+                    const cd = (c,s) => L.divIcon({className: 'mrk', html: `<div style="background:${c};width:${s}px;height:${s}px;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>`, iconSize:[s,s], iconAnchor:[s/2,s/2]});
+                    
+                    L.marker([38.9696, -77.3861], {icon: cd('#0F172A',18)}).addTo(mapInstance).bindPopup('<b>Global HQ</b><br>Herndon, VA');
+                    L.marker([39.0067, -77.4291], {icon: cd('#0EA5E9',14)}).addTo(mapInstance).bindPopup('<b>Customer Innovation Center (CIC)</b><br>Sterling, VA');
+                    
+                    const usHubs = [[33.68, -117.82, 'Irvine, CA'], [38.75, -121.28, 'Roseville, CA'], [37.77, -121.97, 'San Ramon, CA'], [39.73, -104.99, 'Denver, CO'], [42.03, -88.08, 'Schaumburg, IL'], [38.98, -76.93, 'College Park, MD'], [39.15, -76.92, 'Fulton, MD'], [44.78, -93.60, 'Chaska, MN'], [45.01, -93.45, 'Plymouth, MN'], [44.79, -93.52, 'Shakopee, MN'], [42.99, -71.45, 'Manchester, NH'], [42.88, -78.87, 'Buffalo, NY'], [40.71, -74.00, 'New York, NY'], [43.15, -77.60, 'Rochester, NY'], [35.22, -80.84, 'Charlotte, NC'], [35.99, -78.89, 'Durham, NC'], [40.08, -75.39, 'King of Prussia, PA'], [40.44, -79.99, 'Pittsburgh, PA'], [29.76, -95.36, 'Houston, TX'], [32.81, -96.94, 'Irving, TX'], [37.66, -77.50, 'Glen Allen, VA'], [36.85, -75.97, 'Virginia Beach, VA']];
+                    usHubs.forEach(h => L.marker([h[0], h[1]], {icon: cd('#14B8A6',10)}).addTo(mapInstance).bindPopup(h[2]));
+                    
+                    L.marker([51.50, -0.12], {icon: cd('#14B8A6',10)}).addTo(mapInstance).bindPopup('London, UK (25 Personnel)');
+                    L.marker([12.97, 77.59], {icon: cd('#14B8A6',10)}).addTo(mapInstance).bindPopup('Bangalore, India (29 Personnel)');
+                } else if(mapInstance) {
+                    mapInstance.invalidateSize();
+                }
+            }
+            
+            // Initialize Default Page context safely
+            setTimeout(initFin, 50); 
+        });
+    </script>
+</body>
+</html>
